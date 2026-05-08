@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Home {
+  id         String   @id @default(cuid())
+  name       String
+  inviteCode String   @unique @default(cuid())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  users      User[]
+  members    Member[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  homeId       String
+  role         String   @default("member")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  home         Home     @relation(fields: [homeId], references: [id], onDelete: Cascade)
+  member       Member?
+
+  @@index([homeId])
+}
+
+model Member {
+  id           String             @id @default(cuid())
+  homeId       String
+  name         String
+  dob          DateTime?
+  gender       String?
+  relation     String?
+  notes        String?
+  userId       String?            @unique
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  home         Home               @relation(fields: [homeId], references: [id], onDelete: Cascade)
+  user         User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  medications  MedicationRecord[]
+  supplements  SupplementRecord[]
+  painRecords  PainRecord[]
+  healthIssues HealthIssue[]
+  reports      Report[]
+  cycles       CycleRecord[]
+
+  @@index([homeId])
+  @@index([userId])
+}
+
+model MedicationRecord {
+  id          String    @id @default(cuid())
+  memberId    String
+  date        DateTime
+  name        String
+  dosage      String?
+  timesPerDay Int?
+  endDate     DateTime?
+  frequency   String?
+  reason      String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  member      Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([memberId, date])
+}
+
+model SupplementRecord {
+  id          String    @id @default(cuid())
+  memberId    String
+  date        DateTime
+  name        String
+  dosage      String?
+  timesPerDay Int?
+  endDate     DateTime?
+  reason      String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  member      Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([memberId, date])
+}
+
+model PainRecord {
+  id          String   @id @default(cuid())
+  memberId    String
+  date        DateTime
+  severity    Int
+  location    String?
+  description String?
+  duration    String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([memberId, date])
+}
+
+model HealthIssue {
+  id            String    @id @default(cuid())
+  memberId      String
+  title         String
+  description   String?
+  diagnosedDate DateTime?
+  resolvedDate  DateTime?
+  status        String    @default("active")
+  severity      String?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  member        Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([memberId, status])
+}
+
+model Report {
+  id        String   @id @default(cuid())
+  memberId  String
+  date      DateTime
+  title     String
+  type      String
+  notes     String?
+  fileUrl   String?
+  fileName  String?
+  fileSize  Int?
+  createdAt DateTime @default(now())
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([memberId, date])
+  @@index([memberId, type])
+}
+
+model CycleRecord {
+  id        String    @id @default(cuid())
+  memberId  String
+  startDate DateTime
+  endDate   DateTime?
+  flow      String?
+  symptoms  String?
+  notes     String?
+  createdAt DateTime  @default(now())
+  member    Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([memberId, startDate])
+}

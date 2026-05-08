@@ -1,0 +1,30 @@
+# Aries App — Development
+#
+# Usage: docker-compose up -d
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-aries_db}
+      POSTGRES_USER:     ${POSTGRES_USER:-aries_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aries_pass}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL:    admin@aries.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5051:80"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

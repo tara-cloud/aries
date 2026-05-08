@@ -1,0 +1,63 @@
+# Aries App — Production (CasaOS / Self-hosted)
+#
+# Usage:
+#   docker-compose -f docker-compose.prod.yml up -d
+#
+# Data persistence:
+#   - PostgreSQL data: named volume aries_pg_data (Pi main drive)
+#   - App data (uploads): /DATA/AppData/aries/app:/data
+#   Set DATA_PATH env var to the host path for app data
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-aries_db}
+      POSTGRES_USER:     ${POSTGRES_USER:-aries_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_in_production}
+    volumes:
+      - aries_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aries_user} -d ${POSTGRES_DB:-aries_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aries_net
+
+  app:
+    image: pmananthu/aries:${APP_VERSION:-1.0.3}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3001}:3000"
+    environment:
+      DATABASE_URL:    "postgresql://${POSTGRES_USER:-aries_user}:${POSTGRES_PASSWORD:-change_me_in_production}@postgres:5432/${POSTGRES_DB:-aries_db}?schema=public"
+      NEXTAUTH_URL:    "${NEXTAUTH_URL:-http://localhost:3001}"
+      NEXTAUTH_SECRET: "${NEXTAUTH_SECRET:-change_me_32_chars_minimum_secret}"
+      NODE_ENV:        production
+      AUTH_TRUST_HOST: "true"
+      DATA_MOUNT_PATH: /data
+    volumes:
+      - ${DATA_PATH:-./data}/app:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - aries_net
+    labels:
+      - "casaos.name=Aries"
+      - "casaos.description=Family medical history tracker"
+      - "casaos.icon=http://192.168.0.107:3001/logo.svg"
+      - "casaos.web_ui_port=3001"
+      - "casaos.log_url=http://192.168.0.107:3001/admin/logs"
+
+networks:
+  aries_net:
+    driver: bridge
+
+volumes:
+  aries_pg_data:
