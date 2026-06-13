@@ -8,6 +8,7 @@ import type { SearchResult } from "@/types/index";
 import { useTheme } from "@/components/layout/ThemeContext";
 import { useDebounce } from "use-debounce";
 import { useEffect } from "react";
+import FileViewerButton from "@/components/FileViewerButton";
 
 const { Title, Text } = Typography;
 
@@ -161,6 +162,11 @@ export default function SearchPage() {
                     <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(r.date).format("MMM D, YYYY")}</Text>
                   </div>
                   <Text type="secondary" style={{ fontSize: 12 }}>{r.member?.name} · <Tag color="purple">{r.type}</Tag></Text>
+                  {r.fileUrl && r.fileName && (
+                    <div style={{ marginTop: 4 }}>
+                      <FileViewerButton fileUrl={r.fileUrl} fileName={r.fileName} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

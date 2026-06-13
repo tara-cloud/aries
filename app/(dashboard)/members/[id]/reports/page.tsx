@@ -6,6 +6,7 @@ import { PlusOutlined, DeleteOutlined, EditOutlined, ArrowLeftOutlined, UploadOu
 import dayjs from "dayjs";
 import type { Member, Report } from "@/types/index";
 import Link from "next/link";
+import FileViewerButton from "@/components/FileViewerButton";
 
 const { Title, Text } = Typography;
 
@@ -100,9 +101,7 @@ export default function MemberReportsPage() {
     { title: "Title", dataIndex: "title", key: "title"  },
     { title: "Type",  dataIndex: "type",  key: "type",  render: (v: string) => <Tag color={TYPE_COLOR[v] || "default"}>{v}</Tag>, width: 120 },
     { title: "File",  dataIndex: "fileName", key: "file", render: (v: string | null, r: Report) => v && r.fileUrl ? (
-      <a href={`/api/files/${r.fileUrl}`} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
-        <FileOutlined /> {v}
-      </a>
+      <FileViewerButton fileUrl={r.fileUrl} fileName={v} />
     ) : "—" },
     { title: "", key: "actions", width: 80, render: (_: unknown, r: Report) => (
       <div style={{ display: "flex", gap: 4 }}>

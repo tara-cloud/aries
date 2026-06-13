@@ -63,7 +63,7 @@ npm run build             # Production build
 ```bash
 docker buildx build --platform linux/arm64 -t pmananthu/aries:VERSION --push .
 ```
-Current version: **1.0.15**
+Current version: **1.0.16**
 
 ## Pi Deployment
 - Port: 3001

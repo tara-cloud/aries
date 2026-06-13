@@ -7,6 +7,7 @@ import dayjs from "dayjs";
 import type { Member, MedicationRecord, SupplementRecord, PainRecord, HealthIssue, Report, TimelineDay } from "@/types/index";
 import { useTheme } from "@/components/layout/ThemeContext";
 import Link from "next/link";
+import FileViewerButton from "@/components/FileViewerButton";
 
 const { Title, Text } = Typography;
 
@@ -189,9 +190,9 @@ export default function MemberTimelinePage() {
                       <Text strong>{r.title}</Text>
                       <Tag style={{ marginLeft: 8 }} color="purple">{r.type}</Tag>
                       {r.fileName && r.fileUrl && (
-                        <a href={`/api/files/${r.fileUrl}`} target="_blank" rel="noreferrer" style={{ display: "block", fontSize: 12, color: "#6366f1", marginTop: 4 }}>
-                          {r.fileName}
-                        </a>
+                        <div style={{ marginTop: 4 }}>
+                          <FileViewerButton fileUrl={r.fileUrl} fileName={r.fileName} />
+                        </div>
                       )}
                       {r.notes && <div><Text type="secondary" style={{ fontSize: 12 }}>{r.notes}</Text></div>}
                     </div>
