@@ -3,10 +3,12 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
+COPY prisma ./prisma
 RUN npm config set fetch-retry-mintimeout 20000 && \
     npm config set fetch-retry-maxtimeout 120000 && \
     npm config set fetch-retries 5 && \
-    npm ci --legacy-peer-deps
+    npm ci --legacy-peer-deps && \
+    npx prisma generate
 
 # ── Stage 2: Build ────────────────────────────────────────────────────────────
 FROM node:22-alpine AS builder
@@ -14,8 +16,6 @@ WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-RUN npx prisma generate
 
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
@@ -40,9 +40,8 @@ COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 COPY migrate.js ./
 COPY docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
-
-RUN mkdir -p /data && chown nextjs:nodejs /data
+RUN chmod +x docker-entrypoint.sh && \
+    mkdir -p /data && chown nextjs:nodejs /data
 VOLUME ["/data"]
 
 USER nextjs
