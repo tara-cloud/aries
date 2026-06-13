@@ -1,0 +1,48 @@
+# Aries Helm Chart — default values
+
+image:
+  repository: pmananthu/aries
+  tag: "1.0.15"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: NodePort
+  port: 3000
+  nodePort: 30301
+
+# PostgreSQL
+postgres:
+  image: postgres:16-alpine
+  database: aries_db
+  user: aries_user
+  password: aries_18a0259eff00e1638c096c8b
+  dataPath: /STORAGE/aries/postgres
+  storageSize: 2Gi
+
+# App data (uploads, backups)
+app:
+  dataPath: /STORAGE/aries/app
+  storageSize: 1Gi
+
+# App config
+auth:
+  url: "http://192.168.0.107:30301"
+  secret: "change-me-to-a-random-32-char-string"
+  trustHost: "true"
+  adminEmail: "admin@aries.local"
+  adminPassword: "Admin@1605"
+  homeName: "Our Family"
+
+probes:
+  initialDelaySeconds: 20
+  periodSeconds: 30
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "1000m"
+    memory: "512Mi"

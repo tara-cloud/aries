@@ -1,0 +1,6 @@
+apiVersion: v2
+name: aries
+description: Aries — family health records and medication tracker (Next.js + PostgreSQL)
+type: application
+version: 1.0.0
+appVersion: "1.0.15"
