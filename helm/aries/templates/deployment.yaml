@@ -134,7 +134,7 @@ spec:
             httpGet:
               path: /api/auth/session
               port: 3000
-            initialDelaySeconds: 15
+            initialDelaySeconds: {{ .Values.probes.initialDelaySeconds }}
             periodSeconds: 10
           volumeMounts:
             - name: appdata

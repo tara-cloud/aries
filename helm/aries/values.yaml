@@ -35,7 +35,7 @@ auth:
   homeName: "Our Family"
 
 probes:
-  initialDelaySeconds: 20
+  initialDelaySeconds: 45
   periodSeconds: 30
 
 resources:

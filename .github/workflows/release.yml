@@ -145,7 +145,7 @@ jobs:
 
       - name: Wait for rollout
         run: |
-          kubectl rollout status deployment/aries -n aries --timeout=3m
+          kubectl rollout status deployment/aries -n aries --timeout=6m
 
       - name: Debug pod state on failure
         if: failure()
