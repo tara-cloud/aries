@@ -1,0 +1,156 @@
+name: Release & Deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  IMAGE: pmananthu/aries
+
+permissions:
+  contents: write
+
+jobs:
+  # ── 1. Create a GitHub Release only when the version tag is new ──────────
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip release]')"
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag:     ${{ steps.version.outputs.tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        run: |
+          VER=$(node -p "require('./package.json').version")
+          echo "version=$VER" >> $GITHUB_OUTPUT
+          echo "tag=v$VER"    >> $GITHUB_OUTPUT
+
+      - name: Check if tag already exists
+        id: tag_check
+        run: |
+          if git ls-remote --tags origin "refs/tags/${{ steps.version.outputs.tag }}" | grep -q .; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create tag and release
+        if: steps.tag_check.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name:     ${{ steps.version.outputs.tag }}
+          draft: false
+          prerelease: false
+
+  # ── 2. Always build & push the image on every push to main ───────────────
+  docker:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: release
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+          sbom: false
+          tags: |
+            ${{ env.IMAGE }}:${{ needs.release.outputs.version }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── 3. Deploy to Pi via Helm on every push to main ───────────────────────
+  helm-upgrade:
+    name: Helm Upgrade on Pi
+    runs-on: self-hosted
+    needs: [release, docker]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+          sudo chown $(id -u):$(id -g) ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Ensure namespace exists and is Helm-adoptable
+        run: |
+          kubectl create namespace aries --dry-run=client -o yaml | kubectl apply -f -
+          kubectl label namespace aries \
+            app.kubernetes.io/managed-by=Helm --overwrite
+          kubectl annotate namespace aries \
+            meta.helm.sh/release-name=aries \
+            meta.helm.sh/release-namespace=aries \
+            --overwrite
+
+      - name: Adopt existing resources into Helm release
+        run: |
+          for kind in deployment service pvc; do
+            for name in $(kubectl get $kind -n aries -o name 2>/dev/null); do
+              kubectl label $name -n aries \
+                app.kubernetes.io/managed-by=Helm --overwrite 2>/dev/null || true
+              kubectl annotate $name -n aries \
+                meta.helm.sh/release-name=aries \
+                meta.helm.sh/release-namespace=aries \
+                --overwrite 2>/dev/null || true
+            done
+          done
+
+      - name: Pre-pull image
+        run: |
+          sudo ctr --namespace k8s.io images pull \
+            docker.io/${{ env.IMAGE }}:${{ needs.release.outputs.version }}
+
+      - name: Restart existing deployment
+        run: |
+          kubectl rollout restart deployment/aries -n aries 2>/dev/null || true
+          kubectl wait --for=delete pod -l app=aries -n aries \
+            --timeout=60s 2>/dev/null || true
+
+      - name: Helm upgrade
+        run: |
+          helm upgrade --install aries ./helm/aries \
+            --namespace aries \
+            --set image.tag=${{ needs.release.outputs.version }}
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/aries -n aries --timeout=3m
+
+      - name: Debug pod state on failure
+        if: failure()
+        run: |
+          kubectl get pods -n aries
+          kubectl describe pods -n aries -l app=aries | tail -30
+
+      - name: Health check
+        run: |
+          sleep 5
+          curl -sf http://localhost:30301/api/auth/session
