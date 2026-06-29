@@ -96,8 +96,6 @@ spec:
               value: "0.0.0.0"
             - name: AUTH_TRUST_HOST
               value: {{ .Values.auth.trustHost | quote }}
-            - name: NEXTAUTH_URL
-              value: {{ .Values.auth.url | quote }}
             - name: HOME_NAME
               value: {{ .Values.auth.homeName | quote }}
             - name: ADMIN_EMAIL
@@ -109,11 +107,11 @@ spec:
                 secretKeyRef:
                   name: aries-secrets
                   key: DATABASE_URL
-            - name: NEXTAUTH_SECRET
+            - name: AUTH_SECRET
               valueFrom:
                 secretKeyRef:
                   name: aries-secrets
-                  key: NEXTAUTH_SECRET
+                  key: AUTH_SECRET
             - name: ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:

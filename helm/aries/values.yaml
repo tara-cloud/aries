@@ -28,8 +28,7 @@ app:
 
 # App config
 auth:
-  url: "http://192.168.0.107:30301"
-  secret: "change-me-to-a-random-32-char-string"
+  secret: "t5aYjBiQeQmDvFWTozkmqr+6VjZ4JOcSRtBHCFPQ/BE="
   trustHost: "true"
   adminEmail: "admin@aries.local"
   adminPassword: "Admin@1605"
